@@ -1,0 +1,43 @@
+ 01234
+0.xxx.
+1xxxxx
+2xxoxx
+3xxxxx
+4.xxx.
+
+25 positions
+of which 4 are unused
+21 usable positions
+20 pins, 19, ..., 1
+
+ 0123456
+0..xxx..
+1..xxx..
+2xxxxxxx
+3xxxoxxx
+4xxxxxxx
+5..xxx..
+6..xxx..
+
+49 positions
+of which 16 are unused
+33 usable positions
+
+given a situation
+loop over all symmetries
+find the equivalent situation with the lowest lexical rank
+if in hash map already skip
+put in hash map
+loop over all possible moves
+traverse and backtrack
+
+encode state as bits (21 bits or 33 bits)
+hardcode the possible moves for each field
+a move is possible if eval(state, bitmask) is True
+hardcode operation for state change corresponding to that move
+compute bit mask to test if move is possible
+
+hardcode bit shuffling due to symmetry, so it's easy to loop over symmetries
+
+use Python to generate the code for bit shuffling
+use C++ to run the dfs
