@@ -356,9 +356,21 @@ void run(unsigned radius, unsigned isituation, unsigned cutoff) {
   }
 }
 
+bool check_sizeof_uint64() {
+  std::cout << "sizeof(uint64): " << sizeof(uint64) << std::endl;
+  if (sizeof(uint64) < 8) {
+    std::cout << "FATAL: sizeof(uint64) too small." << std::endl;
+    return false;
+  }
+  return true;
+}
+
 }  // namespace solvethis
 
 int main(int argc, char* argv[]) {
+  if (!solvethis::check_sizeof_uint64()) {
+    return 2;
+  }
   if (argc != 4) {
     std::cout << "missing required arguments: radius isituation cutoff"
         << std::endl;
