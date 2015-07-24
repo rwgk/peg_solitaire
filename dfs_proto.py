@@ -70,7 +70,8 @@ def get_ipacked_from_bit(bits):
   return ipacked
 
 
-def show_game(radius, bits):
+def format_game(radius, bits):
+  lines = []
   bit = 1
   for i in xrange(-radius, radius + 1):
     row = []
@@ -82,7 +83,13 @@ def show_game(radius, bits):
         symbol = 'x' if bits & bit else 'o'
         bit <<= 1
       row.append(symbol)
-    print ''.join(row)
+    lines.append(''.join(row))
+  return lines
+
+
+def show_game(radius, bits):
+  lines = format_game(radius, bits)
+  print '\n'.join([line.rstrip() for line in lines])
   sys.stdout.flush()
 
 
@@ -94,6 +101,21 @@ def apply_symmetry_masks(symmetry_masks, situation):
       out |= bit
     bit <<= 1
   return out
+
+
+def show_equiv_games(radius, situation, group_symmetry_masks):
+  unique_situations = set()
+  boards = []
+  for symmetry_masks in group_symmetry_masks:
+    equiv_situation = apply_symmetry_masks(symmetry_masks, situation)
+    if equiv_situation in unique_situations:
+      continue
+    unique_situations.add(equiv_situation)
+    boards.append(format_game(radius, equiv_situation))
+  print 'Order', len(boards)
+  for row_of_lines in zip(*boards):
+    print '   '.join(row_of_lines).rstrip()
+  sys.stdout.flush()
 
 
 class move(object):
@@ -247,11 +269,16 @@ def run(args):
   moves = build_moves(radius)
   center_bit = 0x1 << get_ipacked(radius, 0, 0)
   situations = (
-    center_bit,
-    (0x1 << get_ipacked(radius,  0, -2) |
-     0x1 << get_ipacked(radius, -2, -1) |
-     0x1 << get_ipacked(radius, -1, -1)),
-    ~center_bit & ((0x1 << num_bits) - 1))
+      center_bit,
+      (0x1 << get_ipacked(radius,  0, -2) |
+       0x1 << get_ipacked(radius, -2, -1) |
+       0x1 << get_ipacked(radius, -1, -1)),
+      ~center_bit & ((0x1 << num_bits) - 1),
+      (0x1 << get_ipacked(radius, -3, -1) |
+       0x1 << get_ipacked(radius,  1, -3) |
+       0x1 << get_ipacked(radius,  3,  1) |
+       0x1 << get_ipacked(radius, -1,  3)),
+  )
 
   print 'Constants for dfs_core.cc:'
   print num_bits
@@ -265,6 +292,8 @@ def run(args):
 
   situation = situations[isituation]
   show_game(radius, situation)
+  print
+  show_equiv_games(radius, situation, group_symmetry_masks)
 
   if cutoff >= 100:
     imoves = (7, 13, 0, 4, 20, 11, 22, 29, 32, 0, 30, 32, 40, 3, 45, 40, 66,
@@ -275,8 +304,9 @@ def run(args):
     for imove in imoves:
       move = moves[imove]
       situation = move.apply(situation)
-      show_game(radius, situation)
+      show_equiv_games(radius, situation, group_symmetry_masks)
       print
+    sys.stdout.flush()
     return
 
   all_lexmins = {}

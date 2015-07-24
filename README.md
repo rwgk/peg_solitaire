@@ -10,4 +10,3 @@ clang++ -O2 -Wall -std=c++11 dfs_core.cc
 a.out 3 2 0 > log_core_320
 
 python dfs_proto.py 3 2 100
-  TODO: Show symmetry-equivalent boards.
