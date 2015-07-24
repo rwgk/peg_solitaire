@@ -70,7 +70,7 @@ def get_ipacked_from_bit(bits):
   return ipacked
 
 
-def format_game(radius, bits):
+def format_game(radius, bits, prev_bits):
   lines = []
   bit = 1
   for i in xrange(-radius, radius + 1):
@@ -80,7 +80,16 @@ def format_game(radius, bits):
       if ipacked is None:
         symbol = ' '
       else:
-        symbol = 'x' if bits & bit else 'o'
+        if bits & bit:
+          if prev_bits is None or prev_bits & bit:
+            symbol = 'x'
+          else:
+            symbol = '*'
+        else:
+          if prev_bits is not None and prev_bits & bit:
+            symbol = 'O'
+          else:
+            symbol = 'o'
         bit <<= 1
       row.append(symbol)
     lines.append(''.join(row))
@@ -88,7 +97,7 @@ def format_game(radius, bits):
 
 
 def show_game(radius, bits):
-  lines = format_game(radius, bits)
+  lines = format_game(radius, bits, None)
   print '\n'.join([line.rstrip() for line in lines])
   sys.stdout.flush()
 
@@ -103,7 +112,7 @@ def apply_symmetry_masks(symmetry_masks, situation):
   return out
 
 
-def show_equiv_games(radius, situation, group_symmetry_masks):
+def show_equiv_games(radius, situation, prev_situation, group_symmetry_masks):
   unique_situations = set()
   boards = []
   for symmetry_masks in group_symmetry_masks:
@@ -111,7 +120,9 @@ def show_equiv_games(radius, situation, group_symmetry_masks):
     if equiv_situation in unique_situations:
       continue
     unique_situations.add(equiv_situation)
-    boards.append(format_game(radius, equiv_situation))
+    boards.append(format_game(radius,
+                              equiv_situation,
+                              prev_situation if not boards else None))
   print 'Order', len(boards)
   for row_of_lines in zip(*boards):
     print '   '.join(row_of_lines).rstrip()
@@ -293,7 +304,7 @@ def run(args):
   situation = situations[isituation]
   show_game(radius, situation)
   print
-  show_equiv_games(radius, situation, group_symmetry_masks)
+  show_equiv_games(radius, situation, None, group_symmetry_masks)
 
   if cutoff >= 100:
     imoves = (7, 13, 0, 4, 20, 11, 22, 29, 32, 0, 30, 32, 40, 3, 45, 40, 66,
@@ -303,9 +314,10 @@ def run(args):
     print
     for imove in imoves:
       move = moves[imove]
-      situation = move.apply(situation)
-      show_equiv_games(radius, situation, group_symmetry_masks)
+      next_situation = move.apply(situation)
+      show_equiv_games(radius, next_situation, situation, group_symmetry_masks)
       print
+      situation = next_situation
     sys.stdout.flush()
     return
 
