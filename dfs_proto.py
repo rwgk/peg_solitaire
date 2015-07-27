@@ -237,6 +237,14 @@ def continue_play(radius, cutoff, group_symmetry_masks, moves, all_lexmins,
       sys.stdout.flush()
 
 
+def build_wikipedia_notation_english(radius):
+  if radius == 3:
+    forward = 'abcdefghijklmnop'
+    backward = ''.join(reversed(forward.upper()))
+    return forward + 'x' + backward
+  raise ValueError('Unsupported radius.')
+
+
 def run(args):
   assert len(args) == 3, 'radius isituation cutoff'
   radius = int(args[0])
@@ -306,18 +314,62 @@ def run(args):
   print
   show_equiv_games(radius, situation, None, group_symmetry_masks)
 
-  if cutoff >= 100:
-    imoves = (7, 13, 0, 4, 20, 11, 22, 29, 32, 0, 30, 32, 40, 3, 45, 40, 66,
-              47, 50, 5, 35, 58, 8, 65, 57, 74, 41, 72, 74, 63, 68)
-    if cutoff > 100:
+  imoves_canonical = (
+      7, 13, 0, 4, 20, 11, 22, 29, 32, 0, 30, 32, 40, 3, 45, 40,
+      66, 47, 50, 5, 35, 58, 8, 65, 57, 74, 41, 72, 74, 63, 68)
+
+  imoves = None
+  if cutoff in [100, 101]:
+    imoves = imoves_canonical
+    if cutoff == 101:
       imoves = imoves[:-1] + (55,)
+  elif cutoff == 200:
+    imove_by_wiki = {}
+    wne = build_wikipedia_notation_english(radius)
+    for imove, move in enumerate(moves):
+      pair = []
+      for i in [0, 2]:
+        ipacked = get_ipacked_from_bit(move.fingerprint[i])
+        pair.append(wne[ipacked])
+      imove_by_wiki[''.join(pair)] = imove
+
+    wiki_solution = (
+        'ex,lj,ck,Pf,DP,GI,JH,mG,GI,ik,gi,LJ,JH,Hl,lj,jh,'
+        'CK,pF,AC,CK,Mg,gi,ac,ck,kI,dp,pF,FD,DP,Pp,ox')
+    imoves = tuple([imove_by_wiki[pair] for pair in wiki_solution.split(',')])
+
+  if imoves is not None:
     print
+    tracked_situations = [situation]
     for imove in imoves:
       move = moves[imove]
       next_situation = move.apply(situation)
+      if next_situation is None:
+        raise RuntimeError('Invalid move.')
       show_equiv_games(radius, next_situation, situation, group_symmetry_masks)
       print
       situation = next_situation
+      tracked_situations.append(situation)
+
+    if cutoff == 200:
+      tracked_iter = iter(tracked_situations)
+      situation = tracked_iter.next()
+      for imove in imoves_canonical:
+        move = moves[imove]
+        situation = move.apply(situation)
+        tracked_situation = tracked_iter.next()
+        print 'Canonical'
+        show_game(radius, situation)
+        print 'Wikipedia'
+        show_game(radius, tracked_situation)
+        for symmetry_masks in group_symmetry_masks:
+          equiv_situation = apply_symmetry_masks(symmetry_masks, situation)
+          if equiv_situation == tracked_situation:
+            print 'MATCH OK'
+            break
+        else:
+          print 'MATCH OFF'
+
     sys.stdout.flush()
     return
 
